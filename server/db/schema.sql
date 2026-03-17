@@ -35,6 +35,7 @@ CREATE TABLE IF NOT EXISTS user_preferences (
   price_min            INT NOT NULL DEFAULT 1 CHECK (price_min BETWEEN 1 AND 4),
   price_max            INT NOT NULL DEFAULT 4 CHECK (price_max BETWEEN 1 AND 4),
   dietary_restrictions TEXT[] NOT NULL DEFAULT '{}',
+  excluded_cuisines    TEXT[] NOT NULL DEFAULT '{}',
   UNIQUE (user_id, group_id)
 );
 

@@ -1,11 +1,12 @@
 import React, { useEffect, useState } from 'react';
 import {
   View, Text, StyleSheet, ScrollView, TouchableOpacity,
-  SafeAreaView, ActivityIndicator, Alert, Share,
+  SafeAreaView, ActivityIndicator, Alert, Share, TextInput,
 } from 'react-native';
 import { NativeStackScreenProps } from '@react-navigation/native-stack';
 import { GroupsStackParamList, UserPreferences } from '../types';
 import { useGroup } from '../contexts/GroupContext';
+import * as groupService from '../services/groupService';
 import { colors, spacing, typography, radius, shadow } from '../config/theme';
 
 type Props = NativeStackScreenProps<GroupsStackParamList, 'GroupSession'>;
@@ -23,7 +24,9 @@ export default function GroupSessionScreen({ route, navigation }: Props) {
     price_min: 1,
     price_max: 4,
     dietary_restrictions: [],
+    excluded_cuisines: [],
   });
+  const [sessionTime, setSessionTime] = useState('');
   const [saving, setSaving] = useState(false);
   const [loadingRecs, setLoadingRecs] = useState(false);
 
@@ -35,10 +38,31 @@ export default function GroupSessionScreen({ route, navigation }: Props) {
     if (preferences) setPrefs(preferences);
   }, [preferences]);
 
+  useEffect(() => {
+    if (currentGroup?.session_time) {
+      setSessionTime(currentGroup.session_time.slice(0, 5)); // "HH:MM"
+    }
+  }, [currentGroup]);
+
+  // ── Toggle helpers ──────────────────────────────────────────────────────
+
   const toggleCuisine = (c: string) => {
     setPrefs((p) => ({
       ...p,
       cuisines: p.cuisines.includes(c) ? p.cuisines.filter((x) => x !== c) : [...p.cuisines, c],
+      // If cuisine is now preferred, remove it from exclusions
+      excluded_cuisines: p.excluded_cuisines.filter((x) => x !== c),
+    }));
+  };
+
+  const toggleExclusion = (c: string) => {
+    setPrefs((p) => ({
+      ...p,
+      excluded_cuisines: p.excluded_cuisines.includes(c)
+        ? p.excluded_cuisines.filter((x) => x !== c)
+        : [...p.excluded_cuisines, c],
+      // If cuisine is now excluded, remove it from preferred list
+      cuisines: p.cuisines.filter((x) => x !== c),
     }));
   };
 
@@ -57,6 +81,23 @@ export default function GroupSessionScreen({ route, navigation }: Props) {
   };
 
   const handleGetRecs = async () => {
+    // Validate time format if entered
+    if (sessionTime && !/^\d{1,2}:\d{2}$/.test(sessionTime)) {
+      Alert.alert('Invalid time', 'Enter time as HH:MM (e.g. 19:30)');
+      return;
+    }
+
+    // Save session time if provided
+    if (sessionTime) {
+      try {
+        await groupService.updateSession(groupId, { session_time: sessionTime });
+      } catch {
+        Alert.alert('Error', 'Failed to save session time');
+        return;
+      }
+    }
+
+    // Save preferences
     setSaving(true);
     try {
       await savePreferences(groupId, prefs);
@@ -66,6 +107,8 @@ export default function GroupSessionScreen({ route, navigation }: Props) {
       return;
     }
     setSaving(false);
+
+    // Fetch recommendations
     setLoadingRecs(true);
     try {
       await loadRecommendations(groupId);
@@ -84,6 +127,7 @@ export default function GroupSessionScreen({ route, navigation }: Props) {
   return (
     <SafeAreaView style={styles.container}>
       <ScrollView contentContainerStyle={styles.scroll}>
+
         {/* Group Header */}
         {currentGroup && (
           <View style={styles.card}>
@@ -116,31 +160,71 @@ export default function GroupSessionScreen({ route, navigation }: Props) {
           </View>
         )}
 
+        {/* Session Time */}
+        <View style={styles.card}>
+          <Text style={styles.sectionTitle}>Session Details</Text>
+          <Text style={styles.prefLabel}>What time are you dining? (optional)</Text>
+          <TextInput
+            style={styles.input}
+            placeholder="e.g. 19:30"
+            value={sessionTime}
+            onChangeText={setSessionTime}
+            keyboardType="numbers-and-punctuation"
+            maxLength={5}
+          />
+          <Text style={styles.hint}>Used to check if restaurants are open at your arrival time</Text>
+        </View>
+
         {/* Preferences */}
         <View style={styles.card}>
           <Text style={styles.sectionTitle}>Your Preferences</Text>
 
-          {/* Cuisines */}
+          {/* ── Preferred Cuisines ── */}
           <Text style={styles.prefLabel}>Preferred Cuisines</Text>
           <View style={styles.chipGrid}>
             {CUISINE_TYPES.map((c) => (
               <TouchableOpacity
                 key={c}
-                style={[styles.chip, prefs.cuisines.includes(c) && styles.chipSelected]}
+                style={[
+                  styles.chip,
+                  prefs.cuisines.includes(c) && styles.chipSelectedOrange,
+                ]}
                 onPress={() => toggleCuisine(c)}
               >
-                <Text style={[styles.chipText, prefs.cuisines.includes(c) && styles.chipTextSelected]}>{c}</Text>
+                <Text style={[styles.chipText, prefs.cuisines.includes(c) && styles.chipTextSelected]}>
+                  {c}
+                </Text>
               </TouchableOpacity>
             ))}
           </View>
 
-          {/* Price Range */}
-          <Text style={styles.prefLabel}>Max Price Range</Text>
+          {/* ── Cuisines to Avoid ── */}
+          <Text style={[styles.prefLabel, { marginTop: spacing.md }]}>Cuisines to Avoid</Text>
+          <Text style={styles.hint}>Restaurants whose only cuisine matches will be excluded</Text>
+          <View style={styles.chipGrid}>
+            {CUISINE_TYPES.map((c) => (
+              <TouchableOpacity
+                key={c}
+                style={[
+                  styles.chip,
+                  prefs.excluded_cuisines.includes(c) && styles.chipSelectedRed,
+                ]}
+                onPress={() => toggleExclusion(c)}
+              >
+                <Text style={[styles.chipText, prefs.excluded_cuisines.includes(c) && styles.chipTextSelected]}>
+                  {prefs.excluded_cuisines.includes(c) ? `✕ ${c}` : c}
+                </Text>
+              </TouchableOpacity>
+            ))}
+          </View>
+
+          {/* ── Price Range ── */}
+          <Text style={[styles.prefLabel, { marginTop: spacing.md }]}>Max Price Range</Text>
           <View style={styles.priceRow}>
             {[1, 2, 3, 4].map((p) => (
               <TouchableOpacity
                 key={p}
-                style={[styles.priceChip, prefs.price_max >= p && styles.chipSelected]}
+                style={[styles.priceChip, prefs.price_max >= p && styles.chipSelectedOrange]}
                 onPress={() => setPrefs((prev) => ({ ...prev, price_min: 1, price_max: p }))}
               >
                 <Text style={[styles.chipText, prefs.price_max >= p && styles.chipTextSelected]}>
@@ -150,8 +234,8 @@ export default function GroupSessionScreen({ route, navigation }: Props) {
             ))}
           </View>
 
-          {/* Dietary */}
-          <Text style={styles.prefLabel}>Dietary Restrictions</Text>
+          {/* ── Dietary Restrictions ── */}
+          <Text style={[styles.prefLabel, { marginTop: spacing.md }]}>Dietary Restrictions</Text>
           <View style={styles.chipGrid}>
             {DIETARY_OPTIONS.map((d) => (
               <TouchableOpacity
@@ -159,7 +243,9 @@ export default function GroupSessionScreen({ route, navigation }: Props) {
                 style={[styles.chip, prefs.dietary_restrictions.includes(d) && styles.chipSelectedGreen]}
                 onPress={() => toggleDietary(d)}
               >
-                <Text style={[styles.chipText, prefs.dietary_restrictions.includes(d) && styles.chipTextSelected]}>{d}</Text>
+                <Text style={[styles.chipText, prefs.dietary_restrictions.includes(d) && styles.chipTextSelected]}>
+                  {d}
+                </Text>
               </TouchableOpacity>
             ))}
           </View>
@@ -204,15 +290,28 @@ const styles = StyleSheet.create({
   memberName: { ...typography.body, flex: 1 },
   badge: { backgroundColor: colors.primaryLight, paddingHorizontal: 8, paddingVertical: 2, borderRadius: radius.full },
   badgeText: { fontSize: 11, color: colors.primary, fontWeight: '600' },
-  prefLabel: { ...typography.label, marginTop: spacing.md, marginBottom: spacing.sm },
+  prefLabel: { ...typography.label, marginBottom: spacing.xs },
+  hint: { ...typography.small, marginBottom: spacing.sm, fontStyle: 'italic' },
+  input: {
+    borderWidth: 1, borderColor: colors.border, borderRadius: radius.sm,
+    paddingHorizontal: spacing.md, paddingVertical: 12, fontSize: 16,
+    fontFamily: 'monospace', letterSpacing: 2,
+  },
   chipGrid: { flexDirection: 'row', flexWrap: 'wrap', gap: spacing.xs },
-  chip: { paddingHorizontal: 12, paddingVertical: 7, borderRadius: radius.sm, backgroundColor: colors.background, borderWidth: 1, borderColor: colors.border },
-  chipSelected: { backgroundColor: colors.primary, borderColor: colors.primary },
+  chip: {
+    paddingHorizontal: 12, paddingVertical: 7, borderRadius: radius.sm,
+    backgroundColor: colors.background, borderWidth: 1, borderColor: colors.border,
+  },
+  chipSelectedOrange: { backgroundColor: colors.primary, borderColor: colors.primary },
   chipSelectedGreen: { backgroundColor: colors.secondary, borderColor: colors.secondary },
+  chipSelectedRed: { backgroundColor: '#ef4444', borderColor: '#ef4444' },
   chipText: { fontSize: 13, color: colors.textMuted },
   chipTextSelected: { color: colors.white, fontWeight: '600' },
   priceRow: { flexDirection: 'row', gap: spacing.sm },
-  priceChip: { flex: 1, paddingVertical: 10, borderRadius: radius.sm, backgroundColor: colors.background, borderWidth: 1, borderColor: colors.border, alignItems: 'center' },
+  priceChip: {
+    flex: 1, paddingVertical: 10, borderRadius: radius.sm,
+    backgroundColor: colors.background, borderWidth: 1, borderColor: colors.border, alignItems: 'center',
+  },
   errorBox: { backgroundColor: '#fee2e2', padding: spacing.md, borderRadius: radius.sm },
   errorText: { color: '#dc2626', textAlign: 'center' },
   ctaButton: { backgroundColor: colors.primary, paddingVertical: 18, borderRadius: radius.md, alignItems: 'center', marginTop: spacing.sm },

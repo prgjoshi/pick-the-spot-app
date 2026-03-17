@@ -35,6 +35,16 @@ export interface UserPreferences {
   price_min: number;
   price_max: number;
   dietary_restrictions: string[];
+  excluded_cuisines: string[];
+}
+
+export interface ScoreBreakdown {
+  cuisine: number;       // 0–100
+  price: number;         // 0–100
+  distance: number;      // 0–100
+  rating: number;        // 0–100
+  availability: number | null;  // 0–100, or null if no session time set
+  isOpenAtSessionTime: boolean | null;
 }
 
 export interface Restaurant {
@@ -47,9 +57,18 @@ export interface Restaurant {
   types?: string[];
   nationalPhoneNumber?: string;
   currentOpeningHours?: { openNow?: boolean };
-  photos?: Array<{ name: string }>;
+  regularOpeningHours?: {
+    periods?: Array<{
+      open: { day: number; hour: number; minute?: number };
+      close?: { day: number; hour: number; minute?: number };
+    }>;
+    weekdayDescriptions?: string[];
+  };
+  reservable?: boolean;
+  websiteUri?: string;
   groupScore: number;
   reasoning: string;
+  scoreBreakdown: ScoreBreakdown | null;
 }
 
 export interface AuthState {

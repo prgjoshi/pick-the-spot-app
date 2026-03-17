@@ -22,7 +22,14 @@ router.get('/:id/recommendations', requireAuth, async (req, res) => {
       cuisineTypes: allCuisines,
     });
 
-    const recommendations = scoreRestaurants(places, preferences, locationCoords);
+    // Pass session date/time so scoring can factor in opening hours
+    const recommendations = scoreRestaurants(
+      places,
+      preferences,
+      locationCoords,
+      group.session_date ? group.session_date.toISOString().split('T')[0] : null,
+      group.session_time || null
+    );
 
     res.json({ group, recommendations });
   } catch (err) {

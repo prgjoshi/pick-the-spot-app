@@ -4,17 +4,18 @@ const { requireAuth } = require('../middleware/auth');
 
 // PUT /api/groups/:id/preferences
 router.put('/:id/preferences', requireAuth, async (req, res) => {
-  const { cuisines, price_min, price_max, dietary_restrictions } = req.body;
+  const { cuisines, price_min, price_max, dietary_restrictions, excluded_cuisines } = req.body;
 
   try {
     const { rows: [pref] } = await pool.query(
-      `INSERT INTO user_preferences (user_id, group_id, cuisines, price_min, price_max, dietary_restrictions)
-       VALUES ($1, $2, $3, $4, $5, $6)
+      `INSERT INTO user_preferences (user_id, group_id, cuisines, price_min, price_max, dietary_restrictions, excluded_cuisines)
+       VALUES ($1, $2, $3, $4, $5, $6, $7)
        ON CONFLICT (user_id, group_id) DO UPDATE SET
          cuisines = EXCLUDED.cuisines,
          price_min = EXCLUDED.price_min,
          price_max = EXCLUDED.price_max,
-         dietary_restrictions = EXCLUDED.dietary_restrictions
+         dietary_restrictions = EXCLUDED.dietary_restrictions,
+         excluded_cuisines = EXCLUDED.excluded_cuisines
        RETURNING *`,
       [
         req.user.id,
@@ -23,6 +24,7 @@ router.put('/:id/preferences', requireAuth, async (req, res) => {
         price_min || 1,
         price_max || 4,
         dietary_restrictions || [],
+        excluded_cuisines || [],
       ]
     );
     res.json(pref);
@@ -32,7 +34,7 @@ router.put('/:id/preferences', requireAuth, async (req, res) => {
   }
 });
 
-// GET /api/groups/:id/preferences — get all members' preferences (for scoring)
+// GET /api/groups/:id/preferences
 router.get('/:id/preferences', requireAuth, async (req, res) => {
   try {
     const { rows } = await pool.query(

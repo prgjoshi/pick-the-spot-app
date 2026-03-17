@@ -11,10 +11,14 @@ const FIELD_MASK = [
   'places.location',
   'places.types',
   'places.currentOpeningHours.openNow',
+  'places.regularOpeningHours.periods',
+  'places.regularOpeningHours.weekdayDescriptions',
   'places.nationalPhoneNumber',
   'places.photos',
   'places.editorialSummary',
   'places.servesVegetarianFood',
+  'places.reservable',
+  'places.websiteUri',
 ].join(',');
 
 async function geocodeLocation(locationText) {
@@ -68,12 +72,12 @@ async function searchRestaurants({ location, cuisineTypes }) {
     return true;
   });
 
-  // Attempt to get lat/lng for the location (used for distance scoring)
+  // Geocode the location for distance scoring
   let locationCoords = null;
   try {
     locationCoords = await geocodeLocation(location);
   } catch {
-    // Distance scoring will use default if geocoding fails
+    // Distance scoring will use 0.5 default if geocoding fails
   }
 
   return { places: unique, locationCoords };
