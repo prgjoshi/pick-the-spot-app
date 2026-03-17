@@ -4,7 +4,7 @@ import {
   SafeAreaView, ActivityIndicator, Linking, Modal, ScrollView,
 } from 'react-native';
 import { NativeStackScreenProps } from '@react-navigation/native-stack';
-import { GroupsStackParamList, Restaurant, ScoreBreakdown } from '../types';
+import { GroupsStackParamList, Restaurant, ReservationData, ScoreBreakdown } from '../types';
 import { useGroup } from '../contexts/GroupContext';
 import { getPriceLabel, getRestaurantName, getScoreColor } from '../utils/helpers';
 import { colors, spacing, typography, radius, shadow } from '../config/theme';
@@ -99,6 +99,11 @@ function RestaurantCard({ item, index }: { item: Restaurant; index: number }) {
   const name = getRestaurantName(item);
   const scoreColor = getScoreColor(item.groupScore);
   const bd = item.scoreBreakdown;
+  const rd: ReservationData | null | undefined = item.reservationData;
+
+  const fullyBooked = rd?.available === false;
+  const hasSlots = rd?.available === true && (rd.slots?.length ?? 0) > 0;
+  const hasBookingLink = !!rd?.bookingUrl;
 
   const openMaps = (address: string) => {
     Linking.openURL(`maps://?q=${encodeURIComponent(address)}`).catch(() =>
@@ -110,7 +115,7 @@ function RestaurantCard({ item, index }: { item: Restaurant; index: number }) {
   const openWebsite = (uri: string) => Linking.openURL(uri);
 
   return (
-    <View style={card.container}>
+    <View style={[card.container, fullyBooked && card.containerDimmed]}>
       {/* Header row */}
       <View style={card.header}>
         <View style={card.rankBadge}>
@@ -150,12 +155,49 @@ function RestaurantCard({ item, index }: { item: Restaurant; index: number }) {
             </Text>
           </View>
         )}
-        {item.reservable === true && (
+        {/* Reservation availability badges — only shown when OT data exists */}
+        {hasSlots && (
+          <View style={[card.chip, { backgroundColor: '#dcfce7' }]}>
+            <Text style={{ fontSize: 12, color: '#16a34a', fontWeight: '600' }}>
+              🟢 {rd!.slots.length} slot{rd!.slots.length !== 1 ? 's' : ''} available
+            </Text>
+          </View>
+        )}
+        {fullyBooked && (
+          <View style={[card.chip, { backgroundColor: '#fee2e2' }]}>
+            <Text style={{ fontSize: 12, color: '#dc2626', fontWeight: '600' }}>🔴 Fully booked</Text>
+          </View>
+        )}
+        {/* Booking link available (from OT/Resy URL or reservable flag) */}
+        {hasBookingLink && !hasSlots && !fullyBooked && (
+          <View style={[card.chip, { backgroundColor: '#dbeafe' }]}>
+            <Text style={{ fontSize: 12, color: '#1d4ed8', fontWeight: '600' }}>
+              🗓 {rd!.platform === 'opentable' ? 'On OpenTable' : rd!.platform === 'resy' ? 'On Resy' : 'Reservations'}
+            </Text>
+          </View>
+        )}
+        {/* Fallback when no booking data at all */}
+        {item.reservable === true && !rd && (
           <View style={[card.chip, { backgroundColor: '#dbeafe' }]}>
             <Text style={{ fontSize: 12, color: '#1d4ed8', fontWeight: '600' }}>Takes Reservations</Text>
           </View>
         )}
       </View>
+
+      {/* Available time slots (horizontal scroll) */}
+      {hasSlots && (
+        <ScrollView horizontal showsHorizontalScrollIndicator={false} style={card.slotsScroll} contentContainerStyle={card.slotsRow}>
+          {rd!.slots.map((slot) => (
+            <TouchableOpacity
+              key={slot.time}
+              style={card.slotChip}
+              onPress={() => openWebsite(slot.bookingUrl)}
+            >
+              <Text style={card.slotChipText}>{slot.time}</Text>
+            </TouchableOpacity>
+          ))}
+        </ScrollView>
+      )}
 
       {/* Reasoning */}
       {item.reasoning && (
@@ -189,9 +231,25 @@ function RestaurantCard({ item, index }: { item: Restaurant; index: number }) {
             <Text style={card.btnText}>📍 Directions</Text>
           </TouchableOpacity>
         )}
-        {item.reservable && item.websiteUri && (
+        {/* Book a Table — priority: confirmed slots > pre-filled booking link > website */}
+        {hasSlots && (
+          <TouchableOpacity style={[card.btn, card.btnBookOT]} onPress={() => openWebsite(rd!.slots[0].bookingUrl)}>
+            <Text style={[card.btnText, { color: colors.white }]}>🗓 Book a Table</Text>
+          </TouchableOpacity>
+        )}
+        {!hasSlots && hasBookingLink && !fullyBooked && (
+          <TouchableOpacity style={[card.btn, card.btnBook]} onPress={() => openWebsite(rd!.bookingUrl!)}>
+            <Text style={[card.btnText, { color: '#1d4ed8' }]}>🗓 Find a Table</Text>
+          </TouchableOpacity>
+        )}
+        {!rd && item.reservable && item.websiteUri && (
           <TouchableOpacity style={[card.btn, card.btnBook]} onPress={() => openWebsite(item.websiteUri!)}>
             <Text style={[card.btnText, { color: '#1d4ed8' }]}>🗓 Book Online</Text>
+          </TouchableOpacity>
+        )}
+        {!item.reservable && item.websiteUri && !rd && (
+          <TouchableOpacity style={[card.btn, card.btnGray]} onPress={() => openWebsite(item.websiteUri!)}>
+            <Text style={[card.btnText, { color: colors.textMuted }]}>🌐 Visit Website</Text>
           </TouchableOpacity>
         )}
         {item.nationalPhoneNumber && (
@@ -303,10 +361,17 @@ const card = StyleSheet.create({
   breakdownToggle: { paddingVertical: 6 },
   breakdownToggleText: { fontSize: 12, color: colors.primary, fontWeight: '500' },
   breakdown: { backgroundColor: colors.background, borderRadius: radius.sm, padding: spacing.sm, marginBottom: spacing.sm, gap: 6 },
+  containerDimmed: { opacity: 0.55 },
+  slotsScroll: { marginBottom: spacing.sm },
+  slotsRow: { flexDirection: 'row', gap: spacing.xs, paddingVertical: 2 },
+  slotChip: { backgroundColor: '#dcfce7', borderWidth: 1, borderColor: '#86efac', paddingHorizontal: 12, paddingVertical: 6, borderRadius: radius.sm },
+  slotChipText: { fontSize: 13, color: '#15803d', fontWeight: '700' },
   actions: { flexDirection: 'row', flexWrap: 'wrap', gap: spacing.xs, marginTop: spacing.xs },
   btn: { flex: 1, minWidth: 90, backgroundColor: colors.primary, paddingVertical: 9, borderRadius: radius.sm, alignItems: 'center' },
   btnSecondary: { backgroundColor: colors.white, borderWidth: 1, borderColor: colors.primary },
   btnBook: { backgroundColor: '#dbeafe', borderWidth: 1, borderColor: '#93c5fd' },
+  btnBookOT: { backgroundColor: '#16a34a' },
+  btnGray: { backgroundColor: colors.background, borderWidth: 1, borderColor: colors.border },
   btnText: { color: colors.white, fontWeight: '600', fontSize: 12 },
 });
 

@@ -38,6 +38,19 @@ export interface UserPreferences {
   excluded_cuisines: string[];
 }
 
+export interface ReservationSlot {
+  time: string;       // "19:00", "19:30"
+  bookingUrl: string; // pre-filled OpenTable deep link for this slot
+}
+
+export interface ReservationData {
+  platform: 'opentable' | 'resy' | 'none';
+  available: boolean | null;  // null = unknown (not on OT)
+  slots: ReservationSlot[];   // empty if fully booked or unknown
+  bookingUrl: string | null;  // generic booking URL (no specific slot)
+  checkedAt: string;          // ISO timestamp
+}
+
 export interface ScoreBreakdown {
   cuisine: number;       // 0–100
   price: number;         // 0–100
@@ -69,6 +82,7 @@ export interface Restaurant {
   groupScore: number;
   reasoning: string;
   scoreBreakdown: ScoreBreakdown | null;
+  reservationData?: ReservationData | null;
 }
 
 export interface AuthState {
