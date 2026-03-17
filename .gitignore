@@ -25,3 +25,17 @@ yarn-error.log*
 .idea/
 *.swp
 *.swo
+
+# Server
+server/node_modules/
+server/.env
+
+# Mobile
+mobile/node_modules/
+mobile/.expo/
+mobile/dist/
+mobile/.env
+
+# Secrets
+.env
+*.pem
