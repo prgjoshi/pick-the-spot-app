@@ -15,9 +15,9 @@ export function getRestaurantName(restaurant: Restaurant): string {
 }
 
 export function getScoreColor(score: number): string {
-  if (score >= 80) return '#22c55e';
-  if (score >= 60) return '#f97316';
-  return '#ef4444';
+  if (score >= 80) return '#6B7C45';  // olive — great match
+  if (score >= 60) return '#C24B2F';  // terracotta — good match
+  return '#A33B22';                   // clay red — weaker match
 }
 
 export function formatDate(dateStr: string | null | undefined): string {

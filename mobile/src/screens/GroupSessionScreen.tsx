@@ -147,7 +147,10 @@ export default function GroupSessionScreen({ route, navigation }: Props) {
         {/* Members */}
         {currentGroup?.members && currentGroup.members.length > 0 && (
           <View style={styles.card}>
-            <Text style={styles.sectionTitle}>Members ({currentGroup.members.length})</Text>
+            <View style={styles.secHd}>
+              <Text style={styles.secIcon}>👥</Text>
+              <Text style={styles.sectionTitle}>Members ({currentGroup.members.length})</Text>
+            </View>
             {currentGroup.members.map((m) => (
               <View key={m.id} style={styles.memberRow}>
                 <View style={styles.avatar}>
@@ -162,7 +165,10 @@ export default function GroupSessionScreen({ route, navigation }: Props) {
 
         {/* Session Time */}
         <View style={styles.card}>
-          <Text style={styles.sectionTitle}>Session Details</Text>
+          <View style={styles.secHd}>
+            <Text style={styles.secIcon}>📅</Text>
+            <Text style={styles.sectionTitle}>Session Details</Text>
+          </View>
           <Text style={styles.prefLabel}>What time are you dining? (optional)</Text>
           <TextInput
             style={styles.input}
@@ -177,7 +183,10 @@ export default function GroupSessionScreen({ route, navigation }: Props) {
 
         {/* Preferences */}
         <View style={styles.card}>
-          <Text style={styles.sectionTitle}>Your Preferences</Text>
+          <View style={styles.secHd}>
+            <Text style={styles.secIcon}>🌿</Text>
+            <Text style={styles.sectionTitle}>Your Preferences</Text>
+          </View>
 
           {/* ── Preferred Cuisines ── */}
           <Text style={styles.prefLabel}>Preferred Cuisines</Text>
@@ -283,7 +292,9 @@ const styles = StyleSheet.create({
   codeRow: { flexDirection: 'row', alignItems: 'center', gap: spacing.sm },
   codeLabel: { ...typography.small },
   code: { fontFamily: 'monospace', fontSize: 18, fontWeight: '700', color: colors.primary, letterSpacing: 3 },
-  sectionTitle: { ...typography.h3, marginBottom: spacing.md },
+  secHd: { flexDirection: 'row', alignItems: 'center', gap: spacing.xs, marginBottom: spacing.md },
+  secIcon: { fontSize: 16 },
+  sectionTitle: { ...typography.h3 },
   memberRow: { flexDirection: 'row', alignItems: 'center', gap: spacing.sm, paddingVertical: 6 },
   avatar: { width: 36, height: 36, borderRadius: 18, backgroundColor: colors.primary, justifyContent: 'center', alignItems: 'center' },
   avatarText: { color: colors.white, fontWeight: '700' },
@@ -304,7 +315,7 @@ const styles = StyleSheet.create({
   },
   chipSelectedOrange: { backgroundColor: colors.primary, borderColor: colors.primary },
   chipSelectedGreen: { backgroundColor: colors.secondary, borderColor: colors.secondary },
-  chipSelectedRed: { backgroundColor: '#ef4444', borderColor: '#ef4444' },
+  chipSelectedRed: { backgroundColor: colors.danger, borderColor: colors.danger },
   chipText: { fontSize: 13, color: colors.textMuted },
   chipTextSelected: { color: colors.white, fontWeight: '600' },
   priceRow: { flexDirection: 'row', gap: spacing.sm },

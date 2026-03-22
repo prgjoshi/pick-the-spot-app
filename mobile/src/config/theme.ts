@@ -1,16 +1,17 @@
 export const colors = {
-  primary: '#f97316',      // orange-500
-  primaryDark: '#ea580c',  // orange-600
-  primaryLight: '#fff7ed', // orange-50
-  secondary: '#22c55e',    // green-500
-  danger: '#ef4444',       // red-500
-  background: '#f9fafb',   // gray-50
+  primary: '#C24B2F',        // terracotta
+  primaryDark: '#8B2200',    // dark terracotta
+  primaryLight: '#F5C4B3',   // light terracotta
+  secondary: '#6B7C45',      // olive green
+  secondaryLight: '#E4EDCE', // olive light
+  danger: '#A33B22',         // clay red (exclusions / destructive actions)
+  background: '#F7F3EE',     // warm parchment
   white: '#ffffff',
-  text: '#111827',         // gray-900
-  textMuted: '#6b7280',    // gray-500
-  textLight: '#9ca3af',    // gray-400
-  border: '#e5e7eb',       // gray-200
-  borderFocus: '#f97316',
+  text: '#3D2B1F',           // dark brown
+  textMuted: '#7A6050',      // medium brown
+  textLight: '#A8947E',      // light brown
+  border: 'rgba(61,43,31,0.12)',
+  borderFocus: '#C24B2F',
   cardBg: '#ffffff',
   inputBg: '#ffffff',
 };
@@ -42,16 +43,16 @@ export const radius = {
 
 export const shadow = {
   sm: {
-    shadowColor: '#000',
+    shadowColor: '#3D2B1F',
     shadowOffset: { width: 0, height: 1 },
-    shadowOpacity: 0.06,
+    shadowOpacity: 0.08,
     shadowRadius: 4,
     elevation: 2,
   },
   md: {
-    shadowColor: '#000',
+    shadowColor: '#3D2B1F',
     shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.1,
+    shadowOpacity: 0.12,
     shadowRadius: 8,
     elevation: 4,
   },

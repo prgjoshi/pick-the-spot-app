@@ -2,6 +2,7 @@ const router = require('express').Router();
 const crypto = require('crypto');
 const pool = require('../config/database');
 const { requireAuth } = require('../middleware/auth');
+const { requireMember } = require('../middleware/requireMember');
 
 // POST /api/groups — create group
 router.post('/', requireAuth, async (req, res) => {
@@ -10,6 +11,11 @@ router.post('/', requireAuth, async (req, res) => {
     return res.status(400).json({ error: 'name and location are required' });
   }
 
+  const trimmedName = String(name).trim();
+  const trimmedLocation = String(location).trim();
+  if (trimmedName.length > 100) return res.status(400).json({ error: 'Group name must be 100 characters or fewer' });
+  if (trimmedLocation.length > 200) return res.status(400).json({ error: 'Location must be 200 characters or fewer' });
+
   const inviteCode = crypto.randomBytes(3).toString('hex').toUpperCase(); // 6-char hex
   const client = await pool.connect();
   try {
@@ -17,7 +23,7 @@ router.post('/', requireAuth, async (req, res) => {
     const { rows: [group] } = await client.query(
       `INSERT INTO groups (name, invite_code, creator_id, location, session_date, session_time, party_size)
        VALUES ($1, $2, $3, $4, $5, $6, $7) RETURNING *`,
-      [name.trim(), inviteCode, req.user.id, location, session_date || null, session_time || null, party_size || 2]
+      [trimmedName, inviteCode, req.user.id, trimmedLocation, session_date || null, session_time || null, party_size || 2]
     );
     await client.query(
       'INSERT INTO group_members (group_id, user_id) VALUES ($1, $2)',
@@ -38,11 +44,13 @@ router.post('/', requireAuth, async (req, res) => {
 router.post('/join', requireAuth, async (req, res) => {
   const { invite_code } = req.body;
   if (!invite_code) return res.status(400).json({ error: 'invite_code is required' });
+  const code = String(invite_code).trim().toUpperCase();
+  if (!/^[A-F0-9]{6}$/.test(code)) return res.status(400).json({ error: 'Invalid invite code format' });
 
   try {
     const { rows: [group] } = await pool.query(
       'SELECT * FROM groups WHERE invite_code = $1',
-      [invite_code.toUpperCase()]
+      [code]
     );
     if (!group) return res.status(404).json({ error: 'Group not found' });
 
@@ -76,7 +84,7 @@ router.get('/', requireAuth, async (req, res) => {
 });
 
 // GET /api/groups/:id — get group with members
-router.get('/:id', requireAuth, async (req, res) => {
+router.get('/:id', requireAuth, requireMember, async (req, res) => {
   try {
     const { rows: [group] } = await pool.query('SELECT * FROM groups WHERE id = $1', [req.params.id]);
     if (!group) return res.status(404).json({ error: 'Group not found' });

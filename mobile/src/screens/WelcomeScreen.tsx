@@ -20,9 +20,9 @@ export default function WelcomeScreen({ navigation }: Props) {
 
         <View style={styles.features}>
           {[
-            { icon: '👥', title: 'Group Preferences', desc: "Collect everyone's dining preferences in one place" },
-            { icon: '⭐', title: 'Smart Scoring', desc: 'AI-powered algorithm finds restaurants that satisfy everyone' },
-            { icon: '📍', title: 'Real Restaurants', desc: 'Live data from Google Places — real ratings and availability' },
+            { icon: '🌿', title: 'Group Preferences', desc: "Collect everyone's dining preferences in one place" },
+            { icon: '🍃', title: 'Smart Scoring', desc: 'AI-powered algorithm finds restaurants that satisfy everyone' },
+            { icon: '🌱', title: 'Real Restaurants', desc: 'Live data from Google Places — real ratings and availability' },
           ].map((f) => (
             <View key={f.title} style={styles.featureRow}>
               <Text style={styles.featureIcon}>{f.icon}</Text>

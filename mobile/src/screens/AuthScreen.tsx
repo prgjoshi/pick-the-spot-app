@@ -91,7 +91,7 @@ export default function AuthScreen({ route, navigation }: Props) {
               <Text style={styles.label}>Password</Text>
               <TextInput
                 style={styles.input}
-                placeholder="Min 6 characters"
+                placeholder="Min 8 characters"
                 value={password}
                 onChangeText={setPassword}
                 secureTextEntry
@@ -123,7 +123,7 @@ export default function AuthScreen({ route, navigation }: Props) {
 }
 
 const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: colors.white },
+  container: { flex: 1, backgroundColor: colors.background },
   flex: { flex: 1 },
   scroll: { padding: spacing.lg, flexGrow: 1 },
   backButton: { marginBottom: spacing.lg },

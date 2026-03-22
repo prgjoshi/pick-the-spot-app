@@ -1,12 +1,18 @@
 const axios = require('axios');
+const cache = require('../config/cache');
 
 const PLACES_BASE = 'https://places.googleapis.com/v1/places';
+
+// Cache TTLs (seconds)
+const SEARCH_TTL  = 3600;  // 1 hour — restaurant results for a query
+const GEOCODE_TTL = 86400; // 24 hours — city/neighbourhood coordinates rarely change
 
 const FIELD_MASK = [
   'places.id',
   'places.displayName',
   'places.formattedAddress',
   'places.rating',
+  'places.userRatingCount',
   'places.priceLevel',
   'places.location',
   'places.types',
@@ -22,6 +28,10 @@ const FIELD_MASK = [
 ].join(',');
 
 async function geocodeLocation(locationText) {
+  const cacheKey = `geocode:${locationText.toLowerCase().trim()}`;
+  const cached = await cache.get(cacheKey);
+  if (cached) return cached;
+
   const resp = await axios.post(
     `${PLACES_BASE}:searchText`,
     { textQuery: locationText, maxResultCount: 1 },
@@ -34,10 +44,17 @@ async function geocodeLocation(locationText) {
   );
   const loc = resp.data.places?.[0]?.location;
   if (!loc) throw new Error(`Cannot geocode: ${locationText}`);
-  return { latitude: loc.latitude, longitude: loc.longitude };
+  const coords = { latitude: loc.latitude, longitude: loc.longitude };
+
+  await cache.set(cacheKey, coords, GEOCODE_TTL);
+  return coords;
 }
 
 async function searchByQuery(textQuery) {
+  const cacheKey = `places:${textQuery.toLowerCase().trim()}`;
+  const cached = await cache.get(cacheKey);
+  if (cached) return cached;
+
   const resp = await axios.post(
     `${PLACES_BASE}:searchText`,
     {
@@ -52,7 +69,10 @@ async function searchByQuery(textQuery) {
       },
     }
   );
-  return resp.data.places || [];
+  const places = resp.data.places || [];
+
+  await cache.set(cacheKey, places, SEARCH_TTL);
+  return places;
 }
 
 async function searchRestaurants({ location, cuisineTypes }) {
@@ -80,7 +100,16 @@ async function searchRestaurants({ location, cuisineTypes }) {
     // Distance scoring will use 0.5 default if geocoding fails
   }
 
-  return { places: unique, locationCoords };
+  // Return a proxy URL — the frontend calls /api/photo?name=... which fetches
+  // the image server-side so the Google Places API key is never sent to the browser.
+  const withPhotos = unique.map((p) => ({
+    ...p,
+    photoUrl: p.photos?.[0]?.name
+      ? `/api/photo?name=${encodeURIComponent(p.photos[0].name)}`
+      : null,
+  }));
+
+  return { places: withPhotos, locationCoords };
 }
 
 module.exports = { searchRestaurants };

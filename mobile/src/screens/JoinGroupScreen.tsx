@@ -66,7 +66,7 @@ export default function JoinGroupScreen({ navigation }: Props) {
 }
 
 const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: colors.white },
+  container: { flex: 1, backgroundColor: colors.background },
   flex: { flex: 1 },
   content: { flex: 1, padding: spacing.xl, alignItems: 'center', justifyContent: 'center' },
   emoji: { fontSize: 56, marginBottom: spacing.md },

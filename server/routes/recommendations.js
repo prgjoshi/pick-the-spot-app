@@ -1,12 +1,13 @@
 const router = require('express').Router();
 const pool = require('../config/database');
 const { requireAuth } = require('../middleware/auth');
+const { requireMember } = require('../middleware/requireMember');
 const { searchRestaurants } = require('../services/placesService');
 const { scoreRestaurants } = require('../services/scoringService');
 const { getReservationData } = require('../services/reservationService');
 
 // GET /api/groups/:id/recommendations
-router.get('/:id/recommendations', requireAuth, async (req, res) => {
+router.get('/:id/recommendations', requireAuth, requireMember, async (req, res) => {
   try {
     const { rows: [group] } = await pool.query('SELECT * FROM groups WHERE id = $1', [req.params.id]);
     if (!group) return res.status(404).json({ error: 'Group not found' });

@@ -93,7 +93,7 @@ export default function CreateGroupScreen({ navigation }: Props) {
 }
 
 const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: colors.white },
+  container: { flex: 1, backgroundColor: colors.background },
   flex: { flex: 1 },
   scroll: { padding: spacing.lg, flexGrow: 1 },
   form: { gap: spacing.lg },

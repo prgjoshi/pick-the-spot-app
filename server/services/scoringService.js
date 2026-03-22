@@ -2,7 +2,17 @@
 const WEIGHTS = { cuisine: 0.35, price: 0.25, distance: 0.20, rating: 0.10, availability: 0.10 };
 const MAX_RADIUS_KM = 10;
 
-// Maps Google place types to the app's cuisine names (must match mobile app CUISINE_TYPES constant)
+// Bayesian rating constants.
+// BAYES_C: confidence weight — roughly the average review count in the dataset.
+//   Low N restaurants are pulled toward GLOBAL_MEAN; high N restaurants keep their own average.
+//   Start at 50 and tune upward as the dataset grows.
+// GLOBAL_MEAN_RATING: prior mean — the expected Google rating for a random restaurant.
+//   4.2 is a reasonable baseline; recalculate periodically from real data.
+const BAYES_C = 50;
+const GLOBAL_MEAN_RATING = 4.2;
+
+// Maps Google place types to cuisine labels.
+// Values must match: src/PickTheSpotApp.js CUISINE_TYPE_MAP  AND  server/routes/preferences.js VALID_CUISINES
 const CUISINE_TYPE_MAP = {
   italian_restaurant: 'Italian',
   mexican_restaurant: 'Mexican',
@@ -86,9 +96,11 @@ function isOpenAtTime(place, sessionDate, sessionTime) {
   if (!sessionTime || !sessionDate) return true;
   if (!place.regularOpeningHours?.periods?.length) return true;
 
-  // Parse into JS Date to get day-of-week reliably
+  // Parse into JS Date to get day-of-week reliably.
+  // Append T12:00:00 so the date is treated as local noon, not UTC midnight
+  // (which would flip to the previous calendar day on US servers).
   const [h, m] = sessionTime.split(':').map(Number);
-  const date = new Date(sessionDate);
+  const date = new Date(sessionDate + 'T12:00:00');
   const dayOfWeek = date.getDay(); // 0=Sun … 6=Sat
   const requestedMinutes = h * 60 + (m || 0);
 
@@ -120,6 +132,7 @@ function cuisineScore(place, preferences) {
 }
 
 function priceScore(place, preferences) {
+  if (!preferences || preferences.length === 0) return 0.5;
   const priceLevel = PRICE_LEVEL_MAP[place.priceLevel] ?? null;
   if (priceLevel === null) return 0.5;
   const accepting = preferences.filter(
@@ -141,7 +154,12 @@ function distanceScore(place, locationCoords) {
 
 function ratingScore(place) {
   if (!place.rating) return 0.5;
-  return (place.rating - 1) / 4;
+  // Bayesian-adjusted rating (IMDb-style): pulls low-review-count restaurants toward
+  // the global mean so a 5.0 from 3 reviews can't outrank a 4.7 from 800 reviews.
+  // Formula: BAR = (C * M + N * R) / (C + N)
+  const N = place.userRatingCount ?? 0;
+  const adjusted = (BAYES_C * GLOBAL_MEAN_RATING + N * place.rating) / (BAYES_C + N);
+  return (adjusted - 1) / 4; // normalize 1–5 → 0–1
 }
 
 function availabilityScore(place, sessionDate, sessionTime) {

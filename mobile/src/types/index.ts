@@ -44,7 +44,7 @@ export interface ReservationSlot {
 }
 
 export interface ReservationData {
-  platform: 'opentable' | 'resy' | 'none';
+  platform: 'opentable' | 'resy' | 'tock' | 'none';
   available: boolean | null;  // null = unknown (not on OT)
   slots: ReservationSlot[];   // empty if fully booked or unknown
   bookingUrl: string | null;  // generic booking URL (no specific slot)
@@ -65,6 +65,7 @@ export interface Restaurant {
   displayName?: { text: string };
   formattedAddress?: string;
   rating?: number;
+  userRatingCount?: number;
   priceLevel?: string;
   location?: { latitude: number; longitude: number };
   types?: string[];

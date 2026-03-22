@@ -1,10 +1,32 @@
 const router = require('express').Router();
 const pool = require('../config/database');
 const { requireAuth } = require('../middleware/auth');
+const { requireMember } = require('../middleware/requireMember');
+
+// Allowlists must stay in sync with the frontend CUISINES / DIETARY_RESTRICTIONS constants
+const VALID_CUISINES = [
+  'Italian', 'Mexican', 'Chinese', 'Japanese', 'American',
+  'Thai', 'Indian', 'Mediterranean', 'French', 'Korean',
+  'Vietnamese', 'Greek', 'Spanish', 'Middle Eastern', 'Caribbean',
+];
+
+const VALID_DIETARY = [
+  'Vegetarian', 'Vegan', 'Gluten-Free', 'Halal', 'Kosher',
+  'Dairy-Free', 'Nut-Free',
+];
+
+function filterAllowlist(arr, allowlist) {
+  if (!Array.isArray(arr)) return [];
+  return arr.filter((v) => typeof v === 'string' && allowlist.includes(v));
+}
 
 // PUT /api/groups/:id/preferences
-router.put('/:id/preferences', requireAuth, async (req, res) => {
+router.put('/:id/preferences', requireAuth, requireMember, async (req, res) => {
   const { cuisines, price_min, price_max, dietary_restrictions, excluded_cuisines } = req.body;
+
+  const safeCuisines = filterAllowlist(cuisines, VALID_CUISINES);
+  const safeDietary = filterAllowlist(dietary_restrictions, VALID_DIETARY);
+  const safeExcluded = filterAllowlist(excluded_cuisines, VALID_CUISINES);
 
   try {
     const { rows: [pref] } = await pool.query(
@@ -20,11 +42,11 @@ router.put('/:id/preferences', requireAuth, async (req, res) => {
       [
         req.user.id,
         req.params.id,
-        cuisines || [],
+        safeCuisines,
         price_min || 1,
         price_max || 4,
-        dietary_restrictions || [],
-        excluded_cuisines || [],
+        safeDietary,
+        safeExcluded,
       ]
     );
     res.json(pref);
@@ -35,7 +57,7 @@ router.put('/:id/preferences', requireAuth, async (req, res) => {
 });
 
 // GET /api/groups/:id/preferences
-router.get('/:id/preferences', requireAuth, async (req, res) => {
+router.get('/:id/preferences', requireAuth, requireMember, async (req, res) => {
   try {
     const { rows } = await pool.query(
       `SELECT up.*, u.name as user_name

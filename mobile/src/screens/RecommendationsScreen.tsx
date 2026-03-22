@@ -136,7 +136,11 @@ function RestaurantCard({ item, index }: { item: Restaurant; index: number }) {
       {/* Meta chips */}
       <View style={card.metaRow}>
         {item.rating !== undefined && (
-          <View style={card.chip}><Text style={card.chipText}>⭐ {item.rating.toFixed(1)}</Text></View>
+          <View style={card.chip}>
+            <Text style={card.chipText}>
+              ⭐ {item.rating.toFixed(1)}{item.userRatingCount ? ` (${item.userRatingCount.toLocaleString()})` : ''}
+            </Text>
+          </View>
         )}
         {item.priceLevel && (
           <View style={card.chip}><Text style={card.chipText}>{getPriceLabel(item.priceLevel)}</Text></View>
@@ -172,7 +176,7 @@ function RestaurantCard({ item, index }: { item: Restaurant; index: number }) {
         {hasBookingLink && !hasSlots && !fullyBooked && (
           <View style={[card.chip, { backgroundColor: '#dbeafe' }]}>
             <Text style={{ fontSize: 12, color: '#1d4ed8', fontWeight: '600' }}>
-              🗓 {rd!.platform === 'opentable' ? 'On OpenTable' : rd!.platform === 'resy' ? 'On Resy' : 'Reservations'}
+              🗓 {rd!.platform === 'opentable' ? 'On OpenTable' : rd!.platform === 'resy' ? 'On Resy' : rd!.platform === 'tock' ? 'On Tock' : 'Reservations'}
             </Text>
           </View>
         )}
@@ -212,8 +216,8 @@ function RestaurantCard({ item, index }: { item: Restaurant; index: number }) {
           </TouchableOpacity>
           {expanded && (
             <View style={card.breakdown}>
-              <ScoreBar label="🍜 Cuisine" value={bd.cuisine} color="#f97316" />
-              <ScoreBar label="💰 Price" value={bd.price} color="#22c55e" />
+              <ScoreBar label="🍜 Cuisine" value={bd.cuisine} color="#C24B2F" />
+              <ScoreBar label="💰 Price" value={bd.price} color="#6B7C45" />
               <ScoreBar label="📍 Distance" value={bd.distance} color="#3b82f6" />
               <ScoreBar label="⭐ Rating" value={bd.rating} color="#eab308" />
               {bd.availability !== null && (
@@ -239,7 +243,9 @@ function RestaurantCard({ item, index }: { item: Restaurant; index: number }) {
         )}
         {!hasSlots && hasBookingLink && !fullyBooked && (
           <TouchableOpacity style={[card.btn, card.btnBook]} onPress={() => openWebsite(rd!.bookingUrl!)}>
-            <Text style={[card.btnText, { color: '#1d4ed8' }]}>🗓 Find a Table</Text>
+            <Text style={[card.btnText, { color: '#1d4ed8' }]}>
+              🗓 {rd!.platform === 'opentable' ? 'Book via OpenTable' : rd!.platform === 'resy' ? 'Book via Resy' : rd!.platform === 'tock' ? 'Book via Tock' : 'Find a Table'}
+            </Text>
           </TouchableOpacity>
         )}
         {!rd && item.reservable && item.websiteUri && (
@@ -400,7 +406,7 @@ const modal = StyleSheet.create({
   weightBadge: { backgroundColor: colors.primaryLight, paddingHorizontal: 6, paddingVertical: 1, borderRadius: radius.full },
   weightText: { fontSize: 11, color: colors.primary, fontWeight: '700' },
   rowDesc: { ...typography.small, lineHeight: 17 },
-  formula: { marginTop: spacing.lg, backgroundColor: '#f1f5f9', borderRadius: radius.md, padding: spacing.md },
+  formula: { marginTop: spacing.lg, backgroundColor: colors.background, borderRadius: radius.md, padding: spacing.md },
   formulaLabel: { ...typography.label, marginBottom: spacing.xs },
   formulaText: { fontFamily: 'monospace', fontSize: 13, color: colors.text, lineHeight: 20 },
 });
